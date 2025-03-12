@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import scrapy
 from scrapy import Selector
 
-from index_db.db import get_db, init_db
+from index_db.db import get_db
 from index_db.operations import BrandRepository, SellerRepository, ProductRepository
 from ozon_scraper.utils.driver import ChromeDriver
 
@@ -18,7 +18,6 @@ class OzonSpider(scrapy.Spider):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        init_db(self.DATABASE_URL)
         self.display = subprocess.Popen(["Xvfb", ":99", "-screen", "0", "1280x720x24"])
         os.environ["DISPLAY"] = ":99"
         self.executor = ThreadPoolExecutor(self.MAX_THREADS)
@@ -73,7 +72,7 @@ class OzonSpider(scrapy.Spider):
             'brand_id' : brand_id,
         }
         product_description['hash'] = ProductRepository.compute_product_hash(product_description)
-        product_stored = ProductRepository.get(db, product_primary_key)
+        product_stored = ProductRepository.get_by_pk(db, product_primary_key)
         if not (product_stored and ProductRepository.get_last_state(db, product_stored.id) == product_description['hash']):
             return product_url
         return None

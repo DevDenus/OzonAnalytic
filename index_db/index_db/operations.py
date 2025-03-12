@@ -7,34 +7,66 @@ from index_db.models import Product, ProductHistory, Brand, Seller
 
 class BrandRepository:
     @staticmethod
-    def get(db: Session, name: str):
-        brand = db.query(Brand).filter(Brand.name == name).first()
+    def get_by_id(db : Session, brand_id : int):
+        return db.query(Brand).filter(Brand.id == brand_id).first()
+
+    @staticmethod
+    def get_by_name(db: Session, name: str):
+        return db.query(Brand).filter(Brand.name == name).first()
+
+    @staticmethod
+    def change_url(db : Session, brand_id : int, new_url : str):
+        brand = BrandRepository.get_by_id(db, brand_id)
+        if brand is None:
+            raise KeyError(f"Brand with id {brand_id} does not exist!")
+        if brand.url != new_url:
+            brand.url = new_url
+            db.commit()
+            db.refresh(brand)
         return brand
 
     @staticmethod
     def get_or_create(db: Session, name: str, url: str = None):
-        brand = db.query(Brand).filter(Brand.name == name).first()
+        brand = BrandRepository.get_by_name(db, name)
         if not brand:
             brand = Brand(name=name, url=url)
             db.add(brand)
             db.commit()
             db.refresh(brand)
+        elif url is not None:
+            brand = BrandRepository.change_url(db, brand.id, url)
         return brand
 
 class SellerRepository:
     @staticmethod
-    def get(db: Session, name: str):
-        seller = db.query(Seller).filter(Seller.name == name).first()
+    def get_by_id(db : Session, seller_id : int):
+        return db.query(Seller).filter(Seller.id == seller_id).first()
+
+    @staticmethod
+    def get_by_name(db: Session, name: str):
+        return db.query(Seller).filter(Seller.name == name).first()
+
+    @staticmethod
+    def change_url(db : Session, seller_id : int, new_url : str):
+        seller = SellerRepository.get_by_id(db, seller_id)
+        if seller is None:
+            raise KeyError(f"Seller with id {seller_id} does not exist!")
+        if seller.url != new_url:
+            seller.url = new_url
+            db.commit()
+            db.refresh(seller)
         return seller
 
     @staticmethod
     def get_or_create(db: Session, name: str, url: str = None):
-        seller = db.query(Seller).filter(Seller.name == name).first()
+        seller = SellerRepository.get_by_name(db, name)
         if not seller:
             seller = Seller(name=name, url=url)
             db.add(seller)
             db.commit()
             db.refresh(seller)
+        elif url is not None:
+            seller = SellerRepository.change_url(db, seller.id, url)
         return seller
 
 class ProductRepository:
@@ -46,13 +78,16 @@ class ProductRepository:
         return hashlib.md5(data_str.encode('utf-8')).hexdigest()
 
     @staticmethod
-    def get(db : Session, product_pk : int):
-        product = db.query(Product).filter(Product.pk == product_pk).first()
-        return product
+    def get_by_id(db : Session, product_id : int):
+        return db.query(Product).filter(Product.id == product_id).first()
+
+    @staticmethod
+    def get_by_pk(db : Session, product_pk : int):
+        return db.query(Product).filter(Product.pk == product_pk).first()
 
     @staticmethod
     def get_or_create(db : Session, product_description : dict):
-        product = db.query(Product).filter(Product.pk == product_description['pk']).first()
+        product = ProductRepository.get_by_pk(db, product_description['pk'])
         if not product:
             product = Product(
                 pk=product_description['pk'], name=product_description['name'], url=product_description['url'], brand_id=product_description['brand_id'],
@@ -66,6 +101,30 @@ class ProductRepository:
     @staticmethod
     def get_last_state(db: Session, product_id: int):
         return db.query(ProductHistory).filter(ProductHistory.product_id == product_id).order_by(ProductHistory.created_at.desc()).first()
+
+    @staticmethod
+    def get_by_seller_id(db : Session, seller_id : int):
+        seller_products = db.query(Product).filter(Product.seller_id == seller_id)
+        if seller_products is None:
+            return None
+        current_product = [
+            (product, ProductRepository.get_last_state(db, product.id)) for product in seller_products
+        ]
+        return current_product
+
+    @staticmethod
+    def get_by_brand_id(db : Session, brand_id : int):
+        brand_products = db.query(Product).filter(Product.brand_id == brand_id)
+        if brand_products is None:
+            return None
+        current_product = [
+            (product, ProductRepository.get_last_state(db, product.id)) for product in brand_products
+        ]
+        return current_product
+
+    @staticmethod
+    def get_product_history(db : Session, product_id : int):
+        return db.query(ProductHistory).filter(ProductHistory.product_id == product_id).order_by(ProductHistory.created_at.desc())
 
     @staticmethod
     def add_state(db: Session, product_id: int, product_description: dict):
