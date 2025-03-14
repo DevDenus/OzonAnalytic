@@ -10,6 +10,7 @@ class Brand(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False, unique=True)
     url = Column(String, nullable=True)
+    last_update = Column(DateTime, default=datetime.datetime.now(datetime.timezone.utc))
     products = relationship("Product", back_populates="brand")
 
 class Seller(Base):
@@ -17,6 +18,7 @@ class Seller(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False, unique=True)
     url = Column(String, nullable=True)
+    last_update = Column(DateTime, default=datetime.datetime.now(datetime.timezone.utc))
     products = relationship("Product", back_populates="seller")
 
 class Product(Base):

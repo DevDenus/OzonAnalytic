@@ -1,5 +1,6 @@
 import hashlib
 import json
+import datetime
 
 from sqlalchemy.orm import Session
 
@@ -15,6 +16,10 @@ class BrandRepository:
         return db.query(Brand).filter(Brand.name == name).first()
 
     @staticmethod
+    def get_by_url(db : Session, url : str):
+        return db.query(Brand).filter(Brand.url == url).first()
+
+    @staticmethod
     def change_url(db : Session, brand_id : int, new_url : str):
         brand = BrandRepository.get_by_id(db, brand_id)
         if brand is None:
@@ -23,6 +28,16 @@ class BrandRepository:
             brand.url = new_url
             db.commit()
             db.refresh(brand)
+        return brand
+
+    @staticmethod
+    def update(db : Session, brand_id : int):
+        brand = BrandRepository.get_by_id(db, brand_id)
+        if brand is None:
+            raise KeyError(f"Brand with id {brand_id} does not exist!")
+        brand.last_update = datetime.datetime.now(datetime.timezone.utc)
+        db.commit()
+        db.refresh(brand)
         return brand
 
     @staticmethod
@@ -37,6 +52,10 @@ class BrandRepository:
             brand = BrandRepository.change_url(db, brand.id, url)
         return brand
 
+    @staticmethod
+    def get_all(db : Session):
+        return db.query(Brand).all()
+
 class SellerRepository:
     @staticmethod
     def get_by_id(db : Session, seller_id : int):
@@ -45,6 +64,10 @@ class SellerRepository:
     @staticmethod
     def get_by_name(db: Session, name: str):
         return db.query(Seller).filter(Seller.name == name).first()
+
+    @staticmethod
+    def get_by_url(db : Session, url : str):
+        return db.query(Seller).filter(Seller.url == url).first()
 
     @staticmethod
     def change_url(db : Session, seller_id : int, new_url : str):
@@ -58,6 +81,16 @@ class SellerRepository:
         return seller
 
     @staticmethod
+    def update(db : Session, seller_id : int):
+        seller = SellerRepository.get_by_id(db, seller_id)
+        if seller is None:
+            raise KeyError(f"Seller with id {seller_id} does not exist!")
+        seller.last_update = datetime.datetime.now(datetime.timezone.utc)
+        db.commit()
+        db.refresh(seller)
+        return seller
+
+    @staticmethod
     def get_or_create(db: Session, name: str, url: str = None):
         seller = SellerRepository.get_by_name(db, name)
         if not seller:
@@ -68,6 +101,10 @@ class SellerRepository:
         elif url is not None:
             seller = SellerRepository.change_url(db, seller.id, url)
         return seller
+
+    @staticmethod
+    def get_all(db : Session):
+        return db.query(Seller).all()
 
 class ProductRepository:
     @staticmethod
@@ -97,6 +134,10 @@ class ProductRepository:
             db.commit()
             db.refresh(product)
         return product
+
+    @staticmethod
+    def get_product_count(db : Session):
+        return db.query(Product).count()
 
     @staticmethod
     def get_last_state(db: Session, product_id: int):
