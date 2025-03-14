@@ -13,12 +13,14 @@ from selenium.webdriver.common.by import By
 from selenium_stealth import stealth
 from fake_useragent import UserAgent
 
+
 class ChromeDriver:
-    def __init__(self, driver_location : str, delay_bounders_sec : Tuple[float, float] = (0, 0.5)):
+    def __init__(self, driver_location : str, proxy_server : str = None):
         logging.getLogger("selenium").setLevel(logging.WARNING)
         logging.getLogger("urllib3").setLevel(logging.WARNING)
 
         self.user_agent = UserAgent(browsers=['chrome']).random
+        self.proxy_server = proxy_server
         self.options = Options()
         self.__init_options()
         self.service = Service(driver_location)
@@ -34,8 +36,6 @@ class ChromeDriver:
             fix_hairline=True
         )
 
-        self.delay_bounders_sec = delay_bounders_sec
-
     def __init_options(self):
         base_temp_dir = "/tmp"
         unique_dir = os.path.join(base_temp_dir, f"chrome_profile_{random.randint(10000, 99999)}")
@@ -47,6 +47,8 @@ class ChromeDriver:
 
         self.options.add_argument(f"--user-data-dir={unique_dir}")
         self.options.add_argument(f"--user-agent={self.user_agent}")
+        if self.proxy_server is not None:
+            self.options.add_argument(f"--proxy-server={self.proxy_server}")
         self.options.add_argument("--disable-gpu")
         self.options.add_argument("--disable-session-crashed-bubble")
         self.options.add_argument("--disable-blink-features=AutomationControlled")
@@ -56,6 +58,10 @@ class ChromeDriver:
         self.options.add_argument("--start-maximized")
         self.options.add_argument("--log-level=3")
 
+    def get_page_source(self, cool_down : float = 0.2):
+        time.sleep(cool_down)
+        return self.driver.page_source
+
     def scrolldown_get_page(self, deep : int):
         for _ in range(deep):
             self.driver.execute_script(f'window.scrollBy(0, 500)')
@@ -63,9 +69,9 @@ class ChromeDriver:
         html = self.driver.page_source
         return html
 
-    def get_page(self, url: str, scroll_deep : int = 10):
+    def get_page(self, url: str, scroll_deep : int = 10, wait_seconds : float = 1):
         self.driver.get(url)
-        time.sleep(random.uniform(*self.delay_bounders_sec))
+        time.sleep(wait_seconds)
         html = self.scrolldown_get_page(scroll_deep)
         return html
 
