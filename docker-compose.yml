@@ -17,21 +17,26 @@ services:
     build:
       context: ./ozon_scraper
     container_name: ozon_scraper
+    deploy:
+      resources:
+        limits:
+          memory: 16g
+          cpus: "4.0"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       DRIVER_PATH: ${DRIVER_PATH}
       MAX_THREADS: ${MAX_THREADS}
+      START_URLS: ${START_URLS}
     depends_on:
       - db
 
-  api:
+  telegram-bot:
     build:
-      context: ./api
-    container_name: ozon_api
-    ports:
-      - "8000:8000"
+      context: ./telegram_bot
+    container_name: telegram_bot
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      TELEGRAM_API_KEY: ${TELEGRAM_API_KEY}
     depends_on:
       - db
 
