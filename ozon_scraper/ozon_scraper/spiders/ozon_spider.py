@@ -140,7 +140,6 @@ class OzonSpider(scrapy.Spider):
                 response = Selector(text=html, type='html')
                 if len(response.css('div.container.c')) == 2:
                     break
-                tries += 1
             else:
                 print(f"Page {url} was not loaded", flush=True)
                 print(response.css('div.container.c'), flush=True)
@@ -155,11 +154,11 @@ class OzonSpider(scrapy.Spider):
         product_block, price_block = product_card.xpath('div[@data-widget="webPdpGrid"]/div')
         product_name = product_block.xpath('.//div[@data-widget="webProductHeading"]').css('h1::text').get().replace('\n', '').strip()
         product_rating_review = product_block.xpath('.//div[@data-widget="webSingleProductScore"]/a')
-        if product_rating_review:
+        try:
             product_rating_review = product_rating_review.css('div::text').get().split(' • ')
             product_rating = float(product_rating_review[0])
             product_reviews = int("".join(product_rating_review[1].split()[:-1]))
-        else:
+        except TypeError:
             product_rating = 0.0
             product_reviews = 0
         product_question = product_block.xpath('.//div[@data-widget="webQuestionCount"]/a').css('div::text').get()
@@ -277,6 +276,7 @@ class OzonSpider(scrapy.Spider):
                 except Exception as e:
                     print(f"Exception occurred: {e}", flush=True)
                 del self.futures_map[future]
+                break
 
         print("Scrapping is done!", flush=True)
         self.crawler.engine.unpause()
