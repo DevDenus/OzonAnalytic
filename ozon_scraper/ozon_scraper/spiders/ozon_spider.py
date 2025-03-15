@@ -131,12 +131,12 @@ class OzonSpider(scrapy.Spider):
 
     def parse_product(self, url : str, db, driver : ChromeDriver, refresh_after_seconds : int = 60*60):
         try:
-            html = driver.get_page(url, 20)
+            html = driver.get_page(url, 15)
             response = Selector(text=html, type='html')
             product_card, product_sellers = response.css('div.container.c')
         except ValueError:
             for try_cooldown in range(1, 6):
-                html = driver.get_page(url, 20, 2*try_cooldown)
+                html = driver.get_page(url, 15*try_cooldown, 2*try_cooldown)
                 response = Selector(text=html, type='html')
                 if len(response.css('div.container.c')) == 2:
                     break
@@ -158,7 +158,7 @@ class OzonSpider(scrapy.Spider):
             product_rating_review = product_rating_review.css('div::text').get().split(' • ')
             product_rating = float(product_rating_review[0])
             product_reviews = int("".join(product_rating_review[1].split()[:-1]))
-        except TypeError:
+        except Exception:
             product_rating = 0.0
             product_reviews = 0
         product_question = product_block.xpath('.//div[@data-widget="webQuestionCount"]/a').css('div::text').get()
@@ -183,7 +183,7 @@ class OzonSpider(scrapy.Spider):
         product_seller = product_sellers.xpath('.//div[@data-widget="webCurrentSeller"]/div/div')[0].xpath('div')
         try:
             product_seller_url = product_seller.css('a').attrib['href']
-        except:
+        except Exception:
             product_seller_url = None
         product_seller_name = product_seller.css('a::text').get()
         seller = SellerRepository.get_or_create(db, product_seller_name, product_seller_url)
