@@ -136,3 +136,41 @@ def make_product_report(product_pk : int, db) -> Tuple[io.BytesIO, str]:
     report_file.seek(0)
     file_name = f"{product_pk}.xlsx"
     return report_file, file_name
+
+def make_products_report_by_keyword(product_keyword : str, db) -> Tuple[io.BytesIO, str]:
+    products = ProductRepository.get_by_keyword(db, product_keyword)
+    if products is None:
+        raise KeyError(f"Product containing {product_keyword} does not exist!")
+
+    workbook = Workbook()
+    workbook_state = workbook.active
+    workbook_state.title = f"Отчёт по товару {product_keyword}"
+
+    workbook_state.append([
+        "Продавец", "Цена по Ozon карте", "Цена", "Рейтинг", "Количество отзывов",
+        "Количество вопросов", "На распродаже", "Дата", "Ссылка(товар)", "Ссылка(продавец)"
+    ])
+
+    for product in products:
+        seller = SellerRepository.get_by_id(db, product.seller_id)
+        state = ProductRepository.get_last_state(db, product.id)
+        seller_name = seller.name
+        price_ozon = state.price_ozon_card
+        price = state.price
+        rating = state.rating
+        reviews = state.review_count
+        questions = state.question_count
+        on_sale = state.on_sale
+        created_at = state.created_at
+        product_url = product.url
+        seller_url = seller.url
+        workbook_state.append([
+            seller_name, price_ozon, price, rating, reviews, questions,
+            on_sale, created_at, product_url, seller_url
+        ])
+
+    report_file = io.BytesIO()
+    workbook.save(report_file)
+    report_file.seek(0)
+    file_name = f"{product_keyword}.xlsx"
+    return report_file, file_name

@@ -1,0 +1,7 @@
+parsel
+playwright
+dotenv
+telebot
+openpyxl
+sqlalchemy
+psycopg2-binary

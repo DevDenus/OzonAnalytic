@@ -3,12 +3,16 @@ import os
 import telebot
 from telebot import types
 from telebot.storage import StateMemoryStorage
+from dotenv import load_dotenv
 
 from index_db.db import get_db
 from telegram_bot.utils import (
     get_sellers_names, get_brands_names, get_product_count,
-    make_seller_report, make_brand_report, make_product_report
+    make_seller_report, make_brand_report, make_product_report,
+    make_products_report_by_keyword
 )
+
+load_dotenv()
 
 DATABASE_URL = os.getenv('DATABASE_URL')
 TELEGRAM_API_KEY = os.getenv('TELEGRAM_API_KEY')
@@ -27,6 +31,7 @@ def start_dialog(message):
         types.KeyboardButton('/seller_report'),
         types.KeyboardButton('/brand_report'),
         types.KeyboardButton('/product_report'),
+        types.KeyboardButton('/product_keyword_report'),
         types.KeyboardButton('/product_count')
     ]
     for button in buttons:
@@ -95,7 +100,7 @@ def process_brand(message):
 
 @bot.message_handler(commands=['product_report'])
 def ask_for_product(message):
-    bot.send_message(message.chat.id, "Введите артикул интересующего вас товара")
+    bot.send_message(message.chat.id, "Введите артикул Ozon интересующего вас товара")
     user_states[message.from_user.id] = "waiting_product_pk"
     bot.register_next_step_handler(message, process_product)
 
@@ -113,6 +118,26 @@ def process_product(message):
         bot.send_document(message.chat.id, report_file, visible_file_name=file_name)
     except KeyError:
         bot.send_message(message.chat.id, f"Товар {product_pk} не найден")
+    finally:
+        db.close()
+        del user_states[message.from_user.id]
+
+@bot.message_handler(commands=['product_keyword_report'])
+def ask_for_keyword(message):
+    bot.send_message(message.chat.id, "Введите ключевое слово для поиска интересующего вас товара")
+    user_states[message.from_user.id] = "waiting_product_keyword"
+    bot.register_next_step_handler(message, process_product_keyword)
+
+def process_product_keyword(message):
+    product_keyword = message.text
+    bot.send_message(message.chat.id, f"Составляю отчёт по товару: {product_keyword}")
+
+    db = next(get_db(DATABASE_URL))
+    try:
+        report_file, file_name = make_products_report_by_keyword(product_keyword, db)
+        bot.send_document(message.chat.id, report_file, visible_file_name=file_name)
+    except KeyError:
+        bot.send_message(message.chat.id, f"Товар с ключевым словом {product_keyword} не найден")
     finally:
         db.close()
         del user_states[message.from_user.id]

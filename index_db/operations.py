@@ -1,10 +1,17 @@
 import hashlib
 import json
 import datetime
+import re
 
 from sqlalchemy.orm import Session
 
 from index_db.models import Product, ProductHistory, Brand, Seller
+
+def normalize_text(text : str) -> str:
+    lower_text = text.lower()
+    cleared_text = re.sub(r"[^a-zа-яё0-9 ]", "", lower_text)
+    normalized_text = re.sub(r"\s+", " ", cleared_text).strip()
+    return normalized_text
 
 class BrandRepository:
     @staticmethod
@@ -110,6 +117,7 @@ class ProductRepository:
     @staticmethod
     def compute_product_hash(product_data: dict) -> str:
         fields = ['name', 'url', 'on_sale', 'price_ozon_card', 'rating', 'review_count', 'brand']
+        product_data['name'] = normalize_text(product_data['name'])
         relevant_data = {k: product_data.get(k) for k in fields}
         data_str = json.dumps(relevant_data, sort_keys=True)
         return hashlib.md5(data_str.encode('utf-8')).hexdigest()
@@ -123,9 +131,14 @@ class ProductRepository:
         return db.query(Product).filter(Product.pk == product_pk).first()
 
     @staticmethod
+    def get_by_keyword(db : Session, product_keyword : str):
+        return db.query(Product).filter(Product.name.like(f"%{product_keyword}%")).all()
+
+    @staticmethod
     def get_or_create(db : Session, product_description : dict):
         product = ProductRepository.get_by_pk(db, product_description['pk'])
         if not product:
+            product_description['name'] = normalize_text(product_description['name'])
             product = Product(
                 pk=product_description['pk'], name=product_description['name'], url=product_description['url'], brand_id=product_description['brand_id'],
                 seller_id=product_description['seller_id']
