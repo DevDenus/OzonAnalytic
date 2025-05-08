@@ -8,7 +8,10 @@ from telegram_bot.bot import bot
 
 load_dotenv()
 
-START_URLS = os.getenv('START_URLS').split(',')
+with open('start_links.txt', 'r') as f:
+    START_URLS = f.read().split('\n')
+
+
 DATABASE_URL = os.getenv('DATABASE_URL')
 
 def start_bot():

@@ -1,15 +1,12 @@
-import os
 import datetime
-from dotenv import load_dotenv
 
 from parsel import Selector
 
 from index_db.operations import BrandRepository, SellerRepository, ProductRepository
 from .driver import ChromeDriver
 
-load_dotenv()
-
-KEYWORDS = os.getenv('KEYWORDS').split(',')
+with open('keywords.txt', 'r') as f:
+    KEYWORDS = f.read().split('\n')
 
 
 def parse_product_card(product_selector : Selector, db):
